@@ -39,7 +39,7 @@ Saanvi shares `papers.dump` (about 1.6 MB) outside git; dump files are gitignore
 **Create the dump** (on the machine that has the data):
 
 ```bash
-docker compose exec db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /tmp/papers.dump'
+docker compose exec db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc --exclude-table-data=users --exclude-table-data=bookmarks --exclude-table-data=audit_log -f /tmp/papers.dump'
 docker compose cp db:/tmp/papers.dump ./papers.dump
 ```
 
@@ -53,7 +53,8 @@ python ingest/verify_load.py   # expect 4000 papers, 0 counter mismatches
 
 Notes:
 - `pg_restore` recreates the triggers after it loads the data, so citation counts are restored exactly and not counted twice. This was verified: a restore into a scratch database gave 4,000 papers, 37,988 citations and 0 mismatches.
-- The dump includes the `users` table. Run `npm --prefix web run seed:admin` afterwards; it creates or resets the admin from **your** `.env`.
+- The dump holds all papers, authors, conferences and citations, but **no user accounts, bookmarks or audit rows**: the `--exclude-table-data` options keep password hashes out of the file. Run `npm --prefix web run seed:admin` after restoring to create the admin from **your** `.env`.
+- Verified on 30 Oct 2026: `rebuild_db.sh` followed by this restore gives `pg_restore` exit 0, 4,000 papers, 37,988 citations, 0 counter mismatches, every paper `pending`, and 0 users.
 
 ## 4. Re-run the OpenAlex ingestion
 
