@@ -17,6 +17,9 @@ services:
     volumes:
       # Named volume so the data survives "docker compose down" (but not "down -v").
       - pgdata:/var/lib/postgresql/data
+      # The db/ folder (migrations, tests, seed) is visible read-only inside the
+      # container at /db, so SQL tests can load shared files with \i /db/...
+      - ./db:/db:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
