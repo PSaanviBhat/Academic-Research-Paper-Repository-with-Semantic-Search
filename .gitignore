@@ -1,0 +1,32 @@
+# Secrets: only .env.example is committed
+.env
+.env.*
+!.env.example
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Ingestion cache (raw OpenAlex pages, re-downloadable)
+ingest/cache/
+
+# Database dumps are shared separately, not through git
+*.dump
+
+# Editor / OS / local tool settings
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# The original proposal file at the root (a copy lives in docs/proposal.pdf)
+/DBMS_Project_Proposal_Revised_v2.pdf

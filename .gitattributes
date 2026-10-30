@@ -1,0 +1,7 @@
+# Shell scripts and SQL must keep Unix line endings, even on Windows checkouts,
+# or bash/psql choke on the stray carriage returns.
+*.sh   text eol=lf
+*.sql  text eol=lf
+*.ps1  text eol=crlf
+*.pdf  binary
+*.docx binary
