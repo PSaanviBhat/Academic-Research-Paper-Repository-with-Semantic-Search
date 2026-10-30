@@ -132,3 +132,24 @@ This file records every place where the build differs from, or adds detail to, `
 **SQL tests empty the tables at the start of their own transaction (`TRUNCATE ... CASCADE`).**
 - They then give the same result on an empty or a fully loaded database.
 - The final `ROLLBACK` restores every real row.
+
+## Web API
+
+**Session is a stateless HMAC-signed cookie.**
+- The cookie holds `{uid, exp}` signed with `SESSION_SECRET`, with flags HttpOnly, SameSite=Lax, a 7-day expiry, and Secure in production. There is no session table.
+- It is simple and easy to explain, and it needs no extra library (Node's built-in `crypto`).
+- The role is **not** trusted from the cookie. Every request reloads the user from `users`, so a role change or deleted account takes effect at once.
+- Trade-off: logout only deletes the cookie in the browser. A copied cookie stays valid until it expires. A session table would allow server-side revocation, but is not needed at this scale.
+
+**Passwords: bcryptjs (pure JavaScript, no native build step on Windows) at cost 10.**
+- Passwords longer than 72 bytes are rejected, because bcrypt silently ignores anything after byte 72.
+- Login runs a bcrypt comparison even for unknown emails and returns one generic message, so the response does not reveal which emails are registered.
+
+**Admins are created only by `npm --prefix web run seed:admin`, using the `ADMIN_*` values in `.env`.**
+- Registration always creates a `researcher`. A `role` field in the request body is ignored.
+
+**Added `GET /api/admin/audit-log` (admin only).**
+- It exposes the rows written by the delete trigger, so the audit trail is visible through the API.
+- It is also the admin-only route used to test the role guard.
+
+**The Next.js app reads the single `.env` at the repository root** (`next.config.ts` loads it). Postgres, Python and the web app share one configuration file.
