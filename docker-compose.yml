@@ -1,0 +1,39 @@
+# Both databases for the project. Start with:  docker compose up -d
+# Values like ${PG_PORT} come from the .env file next to this one.
+name: paper-repo
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-papers}
+    ports:
+      # Host port is configurable because 5432 may already be taken by another
+      # local Postgres. Inside the Docker network it is always 5432.
+      - "${PG_PORT:-5433}:5432"
+    volumes:
+      # Named volume so the data survives "docker compose down" (but not "down -v").
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  qdrant:
+    # Vector database. Starts empty; the collection and embeddings are created
+    # by the semantic-search half of the project.
+    image: qdrant/qdrant:v1.15.4
+    restart: unless-stopped
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"   # REST API
+      - "${QDRANT_GRPC_PORT:-6334}:6334"   # gRPC API
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+volumes:
+  pgdata:
+  qdrant_data:
