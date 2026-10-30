@@ -1,0 +1,126 @@
+# Every API route, for the VS Code "REST Client" extension (humao.rest-client)
+# or JetBrains HTTP Client. Click "Send Request" above each block.
+# Log in first (admin or researcher); the session cookie is reused automatically.
+# Replace the ids (42, 7, 3) with real ones from earlier responses.
+
+@base = http://localhost:3000
+
+### ---------- auth ----------
+POST {{base}}/api/auth/register
+Content-Type: application/json
+
+{ "name": "Demo Researcher", "email": "demo@example.com", "password": "demo-pass-123" }
+
+###
+POST {{base}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@example.com", "password": "PUT-ADMIN_PASSWORD-FROM-.env-HERE" }
+
+###
+GET {{base}}/api/auth/me
+
+###
+POST {{base}}/api/auth/logout
+
+### ---------- search ----------
+GET {{base}}/api/search?q=neural machine translation&mode=keyword&page=1
+
+###
+GET {{base}}/api/search?q="question answering" -visual&year=2019
+
+###
+# 501 until the vector side is built
+GET {{base}}/api/search?q=teaching machines to understand language&mode=semantic
+
+### ---------- papers ----------
+GET {{base}}/api/papers?page=1&year=2018
+
+###
+GET {{base}}/api/papers/42
+
+###
+# admin
+POST {{base}}/api/papers
+Content-Type: application/json
+
+{
+  "title": "Demo paper added through the API",
+  "abstract": "A short abstract for the demo.",
+  "year": 2026,
+  "doi": "10.9999/demo.1",
+  "conference_id": null,
+  "authors": [ { "name": "Demo Author", "affiliation": "PES University" } ],
+  "cited_paper_ids": [1, 2]
+}
+
+###
+# admin
+PATCH {{base}}/api/papers/42
+Content-Type: application/json
+
+{ "year": 2017 }
+
+###
+# admin (writes an audit_log row through the trigger)
+DELETE {{base}}/api/papers/42
+
+### ---------- authors ----------
+GET {{base}}/api/authors?q=manning
+
+###
+GET {{base}}/api/authors/7
+
+###
+POST {{base}}/api/authors
+Content-Type: application/json
+
+{ "name": "Demo Author 2", "affiliation": "IISc" }
+
+###
+PATCH {{base}}/api/authors/7
+Content-Type: application/json
+
+{ "affiliation": "Stanford University" }
+
+###
+DELETE {{base}}/api/authors/7
+
+### ---------- conferences ----------
+GET {{base}}/api/conferences?q=emnlp
+
+###
+GET {{base}}/api/conferences/3
+
+###
+POST {{base}}/api/conferences
+Content-Type: application/json
+
+{ "name": "Demo Conference", "acronym": "DEMO", "year": 2026, "location": "Bengaluru" }
+
+###
+PATCH {{base}}/api/conferences/3
+Content-Type: application/json
+
+{ "location": "Mysuru" }
+
+###
+DELETE {{base}}/api/conferences/3
+
+### ---------- bookmarks (logged in) ----------
+GET {{base}}/api/bookmarks
+
+###
+POST {{base}}/api/bookmarks
+Content-Type: application/json
+
+{ "paper_id": 42 }
+
+###
+DELETE {{base}}/api/bookmarks/42
+
+### ---------- stats ----------
+GET {{base}}/api/stats/overview
+
+### ---------- admin ----------
+GET {{base}}/api/admin/audit-log
