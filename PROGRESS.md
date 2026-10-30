@@ -27,3 +27,15 @@ Status: `done` = built and proven by the command in the last column; `todo` = no
 | Authentication API (register, login, logout, me, role guard) | done | 2026-10-30 | with the app running: `npm --prefix web run seed:admin` then `bash web/tests/auth_curl.sh` (20 passed: 401 without session, 403 researcher on admin route, 200 admin, forged cookie rejected, bcrypt hash stored) |
 | Remaining API routes (papers, authors, conferences, bookmarks, stats) | done | 2026-10-30 | with the app running: `npm --prefix web run test:api` (32 passed: every route, status codes, and exact contract field names); clickable collection: `web/tests/requests.http` |
 | EXPLAIN ANALYZE evidence, README, handoff note, report draft | done | 2026-10-30 | `bash scripts/psql.sh -f /db/evidence/explain_indexes.sql` (GIN: 4.1x and 20.9x faster, cited-by B-tree 7.7x; indexes restored by ROLLBACK); docs: `docs/explain_evidence.md`, `README.md`, `docs/HANDOFF.md`, `docs/report_rdbms.md` |
+
+## Handoff gate (fresh `git clone`, separate Docker project on ports 5434 / 6335 / 3001, 2026-10-30)
+
+| Check | Result | Evidence |
+|---|---|---|
+| `docker compose up` starts Postgres and an empty Qdrant | PASS | both containers healthy; `GET /collections` returned `[]` |
+| One command rebuilds the schema from scratch | PASS | `bash scripts/rebuild_db.sh` applied 001 to 006, 8 tables |
+| 2,000+ papers with authors and citations, all `pending` | PASS | 4,000 papers, 5,388 authors, 37,988 citations, 4,000 pending; second load added nothing; `verify_load.py` exit 0 |
+| `add_paper()` sets `pending`; the delete audit trigger works | PASS | 005_add_paper_test (19) and 003_triggers_test (17); API test checks the audit row after `DELETE /api/papers/:id` |
+| Keyword search works; semantic and hybrid return 501 | PASS | `/api/search` returned 200 for keyword, 501 "implemented in Part 2" for semantic and hybrid |
+| Auth, CRUD, bookmarks, paper detail and stats routes pass their tests | PASS | `auth_curl.sh` 20/20, `test:api` 32/32, SQL tests 113/113, helper tests 10/10 |
+| README, API_CONTRACT, HANDOFF, EXPLAIN evidence and RDBMS report draft exist | PASS | all present in the clone |
