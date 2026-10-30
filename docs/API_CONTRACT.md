@@ -278,6 +278,20 @@ Body: `{ "paper_id": 42 }`.
 
 ---
 
+## Admin
+
+### `GET /api/admin/audit-log` (admin)
+Params: `page`. Lists the rows the database trigger writes on every paper deletion, newest first.
+**200**
+
+```json
+{ "results": [ { "log_id": 3, "action": "DELETE_PAPER", "paper_id": 42, "admin_id": 1, "admin_email": "admin@example.com", "logged_at": "..." } ], "total": 3 }
+```
+
+- `admin_id` and `admin_email` are `null` when the delete was not made through the API, for example by hand in psql.
+
+---
+
 ## Authentication
 
 ### `POST /api/auth/register` (public)
