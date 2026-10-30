@@ -5,6 +5,13 @@ A repository of research papers with keyword, semantic and hybrid search.
 - **Qdrant** stores abstract embeddings for semantic search.
 - A **Next.js** app exposes the API (and, later, the UI).
 
+DBMS Experiential Learning, Level 3 mini project.
+
+| Team member | SRN |
+|---|---|
+| Sonia Sharma | PES1UG24AM904 |
+| P Saanvi | PES1UG24AM905 |
+
 | Document | What it covers |
 |---|---|
 | `docs/proposal.pdf` | The agreed design |
@@ -90,7 +97,12 @@ npm --prefix web run seed:admin
 npm --prefix web run dev
 ```
 
-The second command creates the admin account from `.env`. The third starts the API on http://localhost:3000. Try http://localhost:3000/api/search?q=neural%20machine%20translation.
+The second command creates the admin account from `.env`. The third starts the API on http://localhost:3000; keep that terminal open while you use it.
+
+There is no home page yet, so `http://localhost:3000/` shows a 404. Open an API route instead:
+- http://localhost:3000/api/search?q=neural%20machine%20translation
+- http://localhost:3000/api/stats/overview
+- http://localhost:3000/api/papers/3
 
 ## Tests
 
