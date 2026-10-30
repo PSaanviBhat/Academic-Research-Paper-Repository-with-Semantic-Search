@@ -12,6 +12,10 @@
 
 BEGIN;
 \o /dev/null
+-- Start from empty tables so the result is the same on an empty or a fully
+-- loaded database. TRUNCATE is transactional in PostgreSQL: the ROLLBACK at
+-- the end brings every real row back.
+TRUNCATE users, conferences, papers, authors, audit_log CASCADE;
 
 INSERT INTO users (name, email, password_hash, role)
 VALUES ('Test Admin', 'admin@test.com', 'hash', 'admin');

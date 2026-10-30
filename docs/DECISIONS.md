@@ -95,3 +95,40 @@ This file records every place where the build differs from, or adds detail to, `
 **Added `db/demo/add_paper_rollback_demo.sql`, a live viva demo.**
 - It lets PostgreSQL print the real foreign-key error and then shows the row counts unchanged.
 - It runs inside `BEGIN ... ROLLBACK`, so it never changes the database.
+
+## Data ingestion
+
+**Dataset.**
+- The data is OpenAlex works whose *primary* topic is "Natural Language Processing Techniques" (topic `T10181`), filtered with `has_abstract:true` and sorted by `cited_by_count:desc`. 4,500 works are downloaded and 4,000 kept.
+- Taking the most-cited papers of one topic gives a dense citation graph inside the dataset: about 38,000 internal edges for 4,000 papers.
+
+**Venue to conference.**
+- Conference and journal sources become `conferences` rows, one per (venue name, year).
+- Preprint repositories such as arXiv are not venues, so those papers have `conference_id = NULL`.
+- `acronym` is taken from a trailing "(EMNLP)" in the venue name when present. `location` is not in OpenAlex, so it stays NULL.
+
+**Duplicates.**
+- OpenAlex often lists a preprint and its published version as two works. Papers are de-duplicated by normalised title.
+- Citations to the dropped copy are redirected to the kept copy.
+
+**Junk abstracts.**
+- Abstracts shorter than 25 words are skipped. They are usually a single sentence or a copyright line, which would make poor search and embedding text.
+
+**Author affiliation.**
+- An author's affiliation is their first institution on the first paper loaded. The `authors` table holds one affiliation per author.
+
+**Ingestion inserts rows directly instead of calling `add_paper()`.**
+- Authors are matched by OpenAlex ID, which is more reliable than name + affiliation and makes the load re-runnable.
+- Citations can only be inserted after *all* papers exist (a second pass).
+- The citation triggers still fire for every edge, because the loader never writes `citation_count` itself. `verify_load.py` proves that every counter matches `COUNT(*)`.
+
+**The download is cached in `ingest/cache/works.jsonl` (gitignored).**
+- Re-running the loader does not hit the API again.
+- The API key is sent in the `Authorization` header, never in the URL.
+
+**Python dependencies are installed into the existing Python 3.11, not a new virtual environment.**
+- That install already had `requests`, `python-dotenv` and `tenacity`. Only `psycopg[binary]` was added.
+
+**SQL tests empty the tables at the start of their own transaction (`TRUNCATE ... CASCADE`).**
+- They then give the same result on an empty or a fully loaded database.
+- The final `ROLLBACK` restores every real row.
