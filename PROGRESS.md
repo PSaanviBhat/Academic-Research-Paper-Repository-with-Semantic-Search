@@ -13,7 +13,7 @@ Status: `done` = built and proven by the command in the last column; `todo` = no
 
 | Task | Status | Date | Proof |
 |---|---|---|---|
-| Indexes (GIN full-text, B-tree on FK/year, trigram on author names) | todo | | |
+| Indexes (GIN full-text, B-tree on FK/year, trigram on author names) | done | 2026-10-30 | `bash scripts/rebuild_db.sh` then `bash scripts/run_tests.sh` (002_indexes_test: 13 passed; checks each index exists and the planner can use it) |
 | Triggers (citation_count up/down, audit log on paper delete) | todo | | |
 | Views (paper details, top cited, papers per year, author stats, conference stats) | todo | | |
 | Transactional `add_paper()` with rollback demo | todo | | |
