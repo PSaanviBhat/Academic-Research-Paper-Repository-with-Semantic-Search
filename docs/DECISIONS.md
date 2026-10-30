@@ -67,3 +67,20 @@ This file records every place where the build differs from, or adds detail to, `
 
 **The rebuild drops and recreates the `public` schema, not the whole database.**
 - It has the same effect (every table, view, function, trigger and row is removed), and it does not need to disconnect other sessions or reconnect to a different database.
+
+**The rebuild leaves the `db/` folder mounted read-only in the Postgres container at `/db`.**
+- SQL tests can then load shared files (such as `db/seed/test_seed.sql`) with `\i /db/...`, without copying them in.
+
+## Database features
+
+**There is a third citation trigger, `AFTER UPDATE OF cited_paper_id`.**
+- The proposal lists insert and delete triggers only.
+- If a citation row were re-pointed to another paper, both papers' counters would silently go wrong. The update trigger moves one count from the old paper to the new one.
+
+**`v_paper_details` has an extra column, `author_list` (an ordered `TEXT[]`).**
+- It sits next to the required `string_agg` display string.
+- The API contract needs `authors` as a JSON array, and an array is easier to work with than splitting a string.
+
+**`v_top_cited_papers` uses `RANK()` and has no LIMIT.**
+- Ties share a rank.
+- The API decides how many rows to show (`LIMIT 10`).
