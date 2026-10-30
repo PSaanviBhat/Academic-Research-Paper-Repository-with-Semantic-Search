@@ -1,8 +1,9 @@
 -- =====================================================================
 -- Live viva demo: a failing add_paper() leaves nothing behind.
 -- Unlike the test, the error is NOT caught here, so PostgreSQL prints its
--- real ERROR message. Everything runs inside BEGIN ... ROLLBACK, so the
--- database is unchanged afterwards.
+-- real ERROR message. It runs on whatever data is loaded (the real OpenAlex
+-- papers, or nothing) inside BEGIN ... ROLLBACK, so the database is unchanged
+-- afterwards.
 --
 -- Run:  bash scripts/psql.sh -f /db/demo/add_paper_rollback_demo.sql
 -- =====================================================================
@@ -11,7 +12,6 @@
 \set QUIET on
 
 BEGIN;
-\i /db/seed/test_seed.sql
 \set QUIET off
 
 \echo
@@ -21,10 +21,10 @@ SELECT (SELECT count(*) FROM papers) AS papers, (SELECT count(*) FROM authors) A
 
 SAVEPOINT before_call;
 
-\echo '2) Add a paper with a NEW author that cites paper 999999 (does not exist):'
+\echo '2) Add a paper with a NEW author that cites a real paper AND paper 999999 (does not exist):'
 SELECT add_paper('This paper should never appear', 'Abstract', 2024, '10.5555/demo.1', NULL,
                  '[{"name": "Brand New Author"}]'::jsonb,
-                 ARRAY[(SELECT paper_id FROM papers WHERE title LIKE 'P1 %'), 999999]);
+                 ARRAY[(SELECT min(paper_id) FROM papers), 999999]);
 
 \echo '3) The transaction is now aborted; undo the failed call:'
 ROLLBACK TO SAVEPOINT before_call;

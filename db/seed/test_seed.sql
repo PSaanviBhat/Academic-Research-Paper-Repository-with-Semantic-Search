@@ -7,11 +7,16 @@
 --   P1 = 4, P2 = 3, P3 = 2, P4 = 1, P5 = 1, P6 = 0
 -- =====================================================================
 
-INSERT INTO conferences (name, acronym, year, location) VALUES
-  ('Conference on Neural Information Processing Systems', 'NeurIPS', 2017, 'Long Beach'),
-  ('Annual Meeting of the Association for Computational Linguistics', 'ACL', 2019, 'Florence'),
-  ('Conference on Empirical Methods in Natural Language Processing', 'EMNLP', 2020, 'Online');
-
+-- The conferences and papers are inserted in ONE statement: the CTE returns
+-- the ids of exactly the conferences created here, so papers are linked to
+-- them even if the database already holds other 'ACL' or 'EMNLP' editions.
+WITH seed_conf AS (
+  INSERT INTO conferences (name, acronym, year, location) VALUES
+    ('Conference on Neural Information Processing Systems', 'NeurIPS', 2017, 'Long Beach'),
+    ('Annual Meeting of the Association for Computational Linguistics', 'ACL', 2019, 'Florence'),
+    ('Conference on Empirical Methods in Natural Language Processing', 'EMNLP', 2020, 'Online')
+  RETURNING conference_id, acronym
+)
 INSERT INTO papers (title, abstract, year, doi, conference_id)
 SELECT v.title, v.abstract, v.year, v.doi, c.conference_id
 FROM (VALUES
@@ -34,7 +39,7 @@ FROM (VALUES
    'We review pretrained language models, their training objectives, and applications across natural language processing.',
    2020, '10.5555/seed.6', NULL)
 ) AS v(title, abstract, year, doi, acronym)
-LEFT JOIN conferences c ON c.acronym = v.acronym;
+LEFT JOIN seed_conf c ON c.acronym = v.acronym;
 
 INSERT INTO authors (name, affiliation) VALUES
   ('Asha Rao', 'Indian Institute of Science'),
