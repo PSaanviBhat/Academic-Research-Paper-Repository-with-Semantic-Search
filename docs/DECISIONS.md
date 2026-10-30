@@ -153,3 +153,11 @@ This file records every place where the build differs from, or adds detail to, `
 - It is also the admin-only route used to test the role guard.
 
 **The Next.js app reads the single `.env` at the repository root** (`next.config.ts` loads it). Postgres, Python and the web app share one configuration file.
+
+**API tests run in Node's built-in test runner (`node --test`) against the running app.**
+- No test library to install.
+- Each test checks the HTTP status *and* that the response has exactly the fields in `docs/API_CONTRACT.md`, so a renamed or extra field fails the test.
+- `web/tests/auth_curl.sh` is the curl version of the authentication checks. `web/tests/requests.http` is a clickable collection of every route.
+
+**Delete routes return `200` with a small JSON body (`{ "paper_id": 42, "deleted": true }`) instead of `204 No Content`.**
+- Every response is then JSON, which keeps the front end simpler.

@@ -6,7 +6,7 @@ import { email, requiredString } from "@/lib/validate";
 
 // bcrypt cost 10 = 2^10 rounds: about 50-100 ms per hash. Slow enough to make
 // guessing stolen hashes expensive, fast enough for a login request.
-export const BCRYPT_COST = 10;
+const BCRYPT_COST = 10;
 
 // POST /api/auth/register  { name, email, password }
 export const POST = handle(async (req: Request) => {

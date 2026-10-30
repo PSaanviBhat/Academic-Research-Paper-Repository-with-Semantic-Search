@@ -8,7 +8,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "seed:admin": "node scripts/create-admin.mjs",
-    "test:api": "node --test tests/"
+    "test:api": "node --test --test-reporter=spec tests/api.test.mjs"
   },
   "dependencies": {
     "bcryptjs": "3.0.3",

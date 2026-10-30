@@ -3,6 +3,9 @@ import { query } from "./db";
 // Shared paper queries, so every route returns exactly the shapes in
 // docs/API_CONTRACT.md.
 
+/** Columns returned for a conference (POST/PATCH responses). */
+export const CONFERENCE_COLUMNS = "conference_id, name, acronym, year, location";
+
 /** Columns of v_paper_details that make up a PaperSummary. */
 export const SUMMARY_COLUMNS = `d.paper_id, d.title, d.year, d.conference_name AS conference,
   d.author_list AS authors, d.citation_count`;
