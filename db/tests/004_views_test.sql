@@ -16,22 +16,22 @@ BEGIN;
 SELECT pg_temp.expect_eq('paper_details: one row per paper (joins add no duplicates)',
   (SELECT count(*) FROM v_paper_details), (SELECT count(*) FROM papers));
 SELECT pg_temp.expect_eq('paper_details: authors joined in byline order',
-  (SELECT authors FROM v_paper_details WHERE title LIKE 'S2 %'), 'Ben Carter, Asha Rao');
+  (SELECT authors FROM v_paper_details WHERE title LIKE 'P2 %'), 'Ben Carter, Asha Rao');
 SELECT pg_temp.expect_eq('paper_details: author array in byline order',
-  (SELECT author_list FROM v_paper_details WHERE title LIKE 'S4 %'),
+  (SELECT author_list FROM v_paper_details WHERE title LIKE 'P4 %'),
   ARRAY['Divya Nair', 'Chen Wei', 'Elena Rossi']);
 SELECT pg_temp.expect_eq('paper_details: conference name attached',
-  (SELECT conference_acronym FROM v_paper_details WHERE title LIKE 'S3 %'), 'EMNLP');
+  (SELECT conference_acronym FROM v_paper_details WHERE title LIKE 'P3 %'), 'EMNLP');
 SELECT pg_temp.expect_eq('paper_details: paper without conference still listed',
-  (SELECT conference_name IS NULL FROM v_paper_details WHERE title LIKE 'S6 %'), true);
+  (SELECT conference_name IS NULL FROM v_paper_details WHERE title LIKE 'P6 %'), true);
 
 -- ---------- v_top_cited_papers ----------
-SELECT pg_temp.expect_eq('top_cited: rank 1 is S1 with 4 citations',
-  (SELECT left(title, 2) || ' / ' || citation_count FROM v_top_cited_papers WHERE rank = 1), 'S1 / 4');
+SELECT pg_temp.expect_eq('top_cited: rank 1 is P1 with 4 citations',
+  (SELECT left(title, 2) || ' / ' || citation_count FROM v_top_cited_papers WHERE rank = 1), 'P1 / 4');
 SELECT pg_temp.expect_eq('top_cited: counts in descending order',
   (SELECT array_agg(citation_count) FROM (SELECT citation_count FROM v_top_cited_papers) t),
   ARRAY[4, 3, 2, 1, 1, 0]);
-SELECT pg_temp.expect_eq('top_cited: ties share a rank (S4, S5 both rank 4)',
+SELECT pg_temp.expect_eq('top_cited: ties share a rank (P4, P5 both rank 4)',
   (SELECT array_agg(rank ORDER BY title) FROM v_top_cited_papers WHERE citation_count = 1),
   ARRAY[4::BIGINT, 4::BIGINT]);
 
@@ -73,10 +73,10 @@ FROM v_conference_stats ORDER BY total_citations DESC;
 -- ---------- views follow live data ----------
 \o /dev/null
 DELETE FROM citations
-WHERE citing_paper_id = (SELECT paper_id FROM papers WHERE title LIKE 'S6 %')
-  AND cited_paper_id  = (SELECT paper_id FROM papers WHERE title LIKE 'S1 %');
-SELECT pg_temp.expect_eq('views are live: S1 drops to 3 after a citation is removed',
-  (SELECT citation_count FROM v_top_cited_papers WHERE title LIKE 'S1 %'), 3);
+WHERE citing_paper_id = (SELECT paper_id FROM papers WHERE title LIKE 'P6 %')
+  AND cited_paper_id  = (SELECT paper_id FROM papers WHERE title LIKE 'P1 %');
+SELECT pg_temp.expect_eq('views are live: P1 drops to 3 after a citation is removed',
+  (SELECT citation_count FROM v_top_cited_papers WHERE title LIKE 'P1 %'), 3);
 \o
 
 SELECT * FROM pg_temp.report();

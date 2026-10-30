@@ -24,7 +24,7 @@ SAVEPOINT before_call;
 \echo '2) Add a paper with a NEW author that cites paper 999999 (does not exist):'
 SELECT add_paper('This paper should never appear', 'Abstract', 2024, '10.5555/demo.1', NULL,
                  '[{"name": "Brand New Author"}]'::jsonb,
-                 ARRAY[(SELECT paper_id FROM papers WHERE title LIKE 'S1 %'), 999999]);
+                 ARRAY[(SELECT paper_id FROM papers WHERE title LIKE 'P1 %'), 999999]);
 
 \echo '3) The transaction is now aborted; undo the failed call:'
 ROLLBACK TO SAVEPOINT before_call;

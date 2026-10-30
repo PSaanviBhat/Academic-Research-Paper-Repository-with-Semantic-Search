@@ -42,7 +42,7 @@ SELECT add_paper(
     (SELECT conference_id FROM conferences WHERE acronym = 'ACL'),
     '[{"name": "Asha Rao",   "affiliation": "Indian Institute of Science"},
       {"name": "Gita Menon", "affiliation": "PES University"}]'::jsonb,
-    ARRAY[pg_temp.pid('S1'), pg_temp.pid('S3')]
+    ARRAY[pg_temp.pid('P1'), pg_temp.pid('P3')]
 ) AS new_id \gset
 
 INSERT INTO counts_log (moment, papers, authors, paper_authors, citations)
@@ -61,10 +61,10 @@ SELECT pg_temp.expect_eq('success: existing author reused, only 1 new author',
   (SELECT count(*) FROM authors WHERE name IN ('Asha Rao', 'Gita Menon')), 2::BIGINT);
 SELECT pg_temp.expect_eq('success: 2 citations stored',
   (SELECT count(*) FROM citations WHERE citing_paper_id = :new_id), 2::BIGINT);
-SELECT pg_temp.expect_eq('success: trigger raised S1 count 4 -> 5',
-  (SELECT citation_count FROM papers WHERE paper_id = pg_temp.pid('S1')), 5);
-SELECT pg_temp.expect_eq('success: trigger raised S3 count 2 -> 3',
-  (SELECT citation_count FROM papers WHERE paper_id = pg_temp.pid('S3')), 3);
+SELECT pg_temp.expect_eq('success: trigger raised P1 count 4 -> 5',
+  (SELECT citation_count FROM papers WHERE paper_id = pg_temp.pid('P1')), 5);
+SELECT pg_temp.expect_eq('success: trigger raised P3 count 2 -> 3',
+  (SELECT citation_count FROM papers WHERE paper_id = pg_temp.pid('P3')), 3);
 
 -- =====================================================================
 -- Part 2: deliberate failure
@@ -78,7 +78,7 @@ SELECT 'Part 2: before failing call', * FROM pg_temp.row_counts();
 SELECT pg_temp.expect_error('failure: citing a paper that does not exist is rejected',
   $$SELECT add_paper('This paper should never appear', 'Abstract', 2024, '10.5555/fail.1', NULL,
                      '[{"name": "Brand New Author"}]'::jsonb,
-                     ARRAY[(SELECT paper_id FROM papers WHERE title LIKE 'S1 %'), 999999])$$,
+                     ARRAY[(SELECT paper_id FROM papers WHERE title LIKE 'P1 %'), 999999])$$,
   '23503');
 
 INSERT INTO counts_log (moment, papers, authors, paper_authors, citations)
@@ -88,8 +88,8 @@ SELECT pg_temp.expect_eq('rollback: paper not inserted',
   (SELECT count(*) FROM papers WHERE title = 'This paper should never appear'), 0::BIGINT);
 SELECT pg_temp.expect_eq('rollback: new author not left behind',
   (SELECT count(*) FROM authors WHERE name = 'Brand New Author'), 0::BIGINT);
-SELECT pg_temp.expect_eq('rollback: S1 citation_count unchanged (5)',
-  (SELECT citation_count FROM papers WHERE paper_id = pg_temp.pid('S1')), 5);
+SELECT pg_temp.expect_eq('rollback: P1 citation_count unchanged (5)',
+  (SELECT citation_count FROM papers WHERE paper_id = pg_temp.pid('P1')), 5);
 SELECT pg_temp.expect_eq('rollback: all row counts identical before and after',
   (SELECT (papers, authors, paper_authors, citations)::TEXT FROM counts_log WHERE moment = 'Part 2: after failing call'),
   (SELECT (papers, authors, paper_authors, citations)::TEXT FROM counts_log WHERE moment = 'Part 2: before failing call'));
