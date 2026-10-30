@@ -52,7 +52,7 @@ def clean_text(value: str | None) -> str | None:
 
 
 def normalise_doi(doi: str | None) -> str | None:
-    """'https://doi.org/10.18653/V1/N19-1423' -> '10.18653/v1/n19-1423' (the stored form)."""
+    """'https://doi.org/10.1162/NECO.1997.9.8.1735' -> '10.1162/neco.1997.9.8.1735' (the stored form)."""
     if not doi:
         return None
     doi = re.sub(r"^https?://(dx\.)?doi\.org/", "", doi.strip().lower())

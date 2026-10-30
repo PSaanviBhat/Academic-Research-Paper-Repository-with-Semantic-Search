@@ -13,7 +13,7 @@ CASES = [
     ("title: HTML tags and entities removed",
      clean_text("Learning <i>Phrase</i> Representations &amp; more  "), "Learning Phrase Representations & more"),
     ("doi: URL prefix removed, lowercased",
-     normalise_doi("https://doi.org/10.18653/V1/N19-1423"), "10.18653/v1/n19-1423"),
+     normalise_doi("https://doi.org/10.1162/NECO.1997.9.8.1735"), "10.1162/neco.1997.9.8.1735"),
     ("doi: not a DOI gives None", normalise_doi("https://example.com/x"), None),
     ("id: OpenAlex URL to short id", short_id("https://openalex.org/W2741809807"), "W2741809807"),
     ("acronym: taken from trailing parentheses",
