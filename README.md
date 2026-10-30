@@ -60,6 +60,21 @@ On Windows PowerShell instead:
 powershell -ExecutionPolicy Bypass -File scripts\run_tests.ps1
 ```
 
+Current tests:
+- `001_schema_test`: constraints
+- `002_indexes_test`: indexes
+- `003_triggers_test`: citation counts and the audit log
+- `004_views_test`: the five views
+- `005_add_paper_test`: the atomic insert and its rollback
+
+## Viva demo: a failed transaction leaves nothing behind
+
+```bash
+bash scripts/psql.sh -f /db/demo/add_paper_rollback_demo.sql
+```
+
+The script prints the real PostgreSQL error, then shows the row counts unchanged. It runs inside `BEGIN ... ROLLBACK`, so the database is not modified.
+
 ## Open a SQL prompt
 
 ```bash
@@ -70,7 +85,7 @@ docker compose exec db psql -U app -d papers
 
 | Folder | Contents |
 |---|---|
-| `db/` | Numbered SQL migrations (append-only), `db/tests` SQL tests, `db/seed` seed data |
+| `db/` | Numbered SQL migrations (append-only), `db/tests` SQL tests, `db/seed` test seed data, `db/demo` viva demo scripts |
 | `ingest/` | Python scripts that load papers from OpenAlex |
 | `web/` | Next.js app (API routes) |
 | `docs/` | Proposal, API contract, ER diagram, decisions, evidence, handoff notes |

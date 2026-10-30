@@ -84,3 +84,14 @@ This file records every place where the build differs from, or adds detail to, `
 **`v_top_cited_papers` uses `RANK()` and has no LIMIT.**
 - Ties share a rank.
 - The API decides how many rows to show (`LIMIT 10`).
+
+**Choices inside `add_paper()`:**
+- **Author matching.** An existing author is reused only when both the name (case-insensitive) and the affiliation match. Two different people can share a name, so matching on name alone would merge them. The trade-off is that the same person listed with two different affiliations becomes two author rows.
+- **DOI normalisation.** The DOI is stored in its normalised form (lowercase, `https://doi.org/` prefix removed), so `https://doi.org/10.1/ABC` and `10.1/abc` are caught as duplicates.
+- **Duplicate citation IDs.** A cited paper ID listed twice is silently de-duplicated instead of failing the whole call.
+- **Error codes.** Input errors raise SQLSTATE `22023` (invalid_parameter_value) with a readable message. Constraint errors keep their own codes (`23503`, `23505`). The API maps both kinds to 400 or 409.
+- **Concurrency limit.** Two admins adding the same brand-new author at the same instant could create two author rows. This is acceptable at this project's scale and documented as a known limitation.
+
+**Added `db/demo/add_paper_rollback_demo.sql`, a live viva demo.**
+- It lets PostgreSQL print the real foreign-key error and then shows the row counts unchanged.
+- It runs inside `BEGIN ... ROLLBACK`, so it never changes the database.

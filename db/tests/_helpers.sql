@@ -23,6 +23,7 @@ LANGUAGE sql AS $$
         WHEN '23503' THEN 'foreign_key_violation'
         WHEN '23502' THEN 'not_null_violation'
         WHEN 'P0001' THEN 'raise_exception'
+        WHEN '22023' THEN 'invalid_parameter_value'
         ELSE p_state
     END
 $$;
