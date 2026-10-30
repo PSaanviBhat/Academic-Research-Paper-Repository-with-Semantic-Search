@@ -7,7 +7,7 @@ Status: `done` = built and proven by the command in the last column; `todo` = no
 | Task | Status | Date | Proof (run from the repo root) |
 |---|---|---|---|
 | Repo layout, Docker (Postgres 16 + empty Qdrant), `.env.example`, API contract | done | 2026-10-30 | `docker compose up -d --wait` then `bash scripts/psql.sh -c "select version()"` and `curl http://localhost:6333/collections` (returns `"collections":[]`) |
-| Core schema with all constraints, ER diagram, one-command rebuild | todo | | |
+| Core schema with all constraints, ER diagram, one-command rebuild | done | 2026-10-30 | `bash scripts/rebuild_db.sh` then `bash scripts/run_tests.sh` (37 passed, 0 failed; PowerShell: `scripts\rebuild_db.ps1`, `scripts\run_tests.ps1`) |
 
 ## Database features
 
