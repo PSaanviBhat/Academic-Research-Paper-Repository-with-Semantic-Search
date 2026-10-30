@@ -5,6 +5,9 @@
 #   scripts/psql.sh < db/tests/001_schema_test.sql
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# Git Bash on Windows rewrites arguments like /db/x.sql into C:/Program Files/Git/db/x.sql;
+# this turns that off so container paths reach psql unchanged.
+export MSYS_NO_PATHCONV=1
 # -T: no TTY, so SQL can be piped in through stdin.
 # Single quotes: $POSTGRES_USER / $POSTGRES_DB are expanded inside the container.
 exec docker compose exec -T db sh -c 'exec psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" "$@"' psql "$@"
