@@ -44,16 +44,18 @@ Status: `done` = built and proven by the command in the last column; `todo` = no
 
 # Progress: vector DB and front-end half
 
-Status: `built` = code written and type-checked, not yet run against the loaded data; `done` = proven by the command in the last column.
+Status: `built` = code written, type-checked and serving, not yet checked by hand in a browser; `done` = proven by the command in the last column.
+
+Verified on a fresh OpenAlex download (2026-11-07): 4,000 papers, 39,100 citations, all counters correct (`verify_load.py`). OpenAlex has grown since the Part 1 load (37,988 citations), so counts differ slightly from Saanvi's database.
 
 | Task | Status | Date | Proof (run from the repo root) |
 |---|---|---|---|
-| V1 Embedding service (FastAPI, all-MiniLM-L6-v2, `POST /embed`) | built | 2026-11-07 | `embed/.venv/bin/python embed/test_embed.py`; `curl -X POST localhost:8001/embed -H 'Content-Type: application/json' -d '{"text":"hello"}'` |
-| V2 Qdrant collection + bulk embedding | built | 2026-11-07 | `embed/.venv/bin/python embed/sync.py` (all papers `done`), then `sync.py --check` |
-| V3 Consistency (post-commit upsert/delete, failed status, retry, orphan-safe hydration) | built | 2026-11-07 | `npm --prefix web run test:api` ("vector consistency" tests) |
-| V4 Semantic search `/api/search?mode=semantic` | built | 2026-11-07 | `npm --prefix web run test:api` (search tests) |
-| V5 Hybrid search (RRF) `/api/search?mode=hybrid` | built | 2026-11-07 | `npm --prefix web run test:api` (search tests) |
-| V6 Next.js layout + search page | built | 2026-11-07 | `npm --prefix web run build`; open http://localhost:3000 |
-| V7 Login, paper detail, bookmarks, admin screens | built | 2026-11-07 | browser walkthrough in `docs/DEMO_SCRIPT.md` |
-| V8 Statistics dashboard | built | 2026-11-07 | http://localhost:3000/stats |
-| V9 Examples, report, demo script | built | 2026-11-07 | `embed/.venv/bin/python embed/compare_modes.py` → `docs/semantic_vs_keyword.md`; `docs/report_vector.md`; `docs/DEMO_SCRIPT.md` |
+| V1 Embedding service (FastAPI, all-MiniLM-L6-v2, `POST /embed`) | done | 2026-11-07 | `embed/.venv/bin/python embed/test_embed.py` (10 passed: 384-d unit vectors, related text closer than unrelated, Python and SQL hashes agree); `curl localhost:8001/health` |
+| V2 Qdrant collection + bulk embedding | done | 2026-11-07 | `embed/.venv/bin/python embed/sync.py` (4000 done, 0 failed, 49.5 s); second run: "nothing to embed"; `sync.py --check`: 4000 points, 0 missing, 0 orphans |
+| V3 Consistency (post-commit upsert/delete, failed status, retry, orphan-safe hydration) | done | 2026-11-07 | `npm --prefix web run test:api` ("vector consistency": add → done + found by meaning, PATCH → re-embedded, DELETE → point removed; 4 passed) |
+| V4 Semantic search `/api/search?mode=semantic` | done | 2026-11-07 | `npm --prefix web run test:api` (search: 7 passed, incl. contract fields, cosine ≤ 1, pagination, year filter); 38/38 overall |
+| V5 Hybrid search (RRF) `/api/search?mode=hybrid` | done | 2026-11-07 | `npm --prefix web run test:api` (contract fields, RRF ≤ 2/61, year filter) |
+| V6 Next.js layout + search page | built | 2026-11-07 | `npm --prefix web run build` passes; every page returns 200. Browser click-through still to do |
+| V7 Login, paper detail, bookmarks, admin screens | built | 2026-11-07 | Pages serve; the APIs behind them pass `test:api` and `auth_curl.sh` (20/20). Browser walkthrough in `docs/DEMO_SCRIPT.md` still to do |
+| V8 Statistics dashboard | built | 2026-11-07 | http://localhost:3000/stats serves; `/api/stats/overview` passes its contract test. Visual check still to do |
+| V9 Examples, report, demo script | done | 2026-11-07 | `embed/.venv/bin/python embed/compare_modes.py` → `docs/semantic_vs_keyword.md` (6 queries: 3 where keyword finds 0 and semantic finds the topic, 1 where both work, 1 partial, 1 documented limitation); `docs/report_vector.md`; `docs/DEMO_SCRIPT.md` |

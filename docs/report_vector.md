@@ -20,7 +20,7 @@ A researcher who types *"teaching machines to understand human language"* is des
 | Normalisation | Unit length, so cosine similarity = dot product |
 | Where | `embed/common.py`, shared by the service (`embed/app.py`) and the sync script (`embed/sync.py`) |
 
-**Why this model.** It is small (about 90 MB, 22 M parameters), runs on a laptop CPU (4,000 abstracts embed in about a minute) and is trained specifically for sentence similarity. A larger model would give slightly better rankings but would slow every query and the bulk load, without changing anything in the database design.
+**Why this model.** It is small (about 90 MB, 22 M parameters), runs on a laptop CPU (all 4,000 abstracts were embedded in 50 seconds on a MacBook Air) and is trained specifically for sentence similarity. A larger model would give better rankings on some topics (see the limitation below) but would slow every query and the bulk load, without changing anything in the database design.
 
 **Embedding service.** `embed/app.py` is a FastAPI service with `POST /embed`: `{"text": "..."}` returns `{"vector": [384 floats], "dim": 384}`. The model is loaded once at start-up. The Next.js API calls it to embed each search query and each new or edited paper.
 
@@ -120,6 +120,8 @@ All three modes return the same response shape, and all three read their records
 > score(p) = Σ over lists containing p of 1 / (60 + rank(p))
 
 with ranks starting at 1. A paper ranked 1st by both lists scores 2/61 ≈ 0.0328. A paper ranked 1st by only one scores 1/61 ≈ 0.0164, about the same as a paper ranked around 30th in both. Agreement between the two methods is therefore rewarded, while a strong match in either one still shows up. The constant 60 (from the original RRF paper) damps the gap between the very top ranks. The two top-100 lists are fused, sorted by RRF score, then hydrated and paginated like semantic results.
+
+**Results and limits.** `docs/semantic_vs_keyword.md` compares the three modes on six everyday-language queries. For three of them keyword search finds **no** paper at all, while semantic search returns the right literature: language understanding, spelling correction, named entity recognition. When the query shares words with the papers ("computers that translate between languages"), keyword search works as well. The small model also has limits: for "making long documents shorter automatically" it matches the idea of *length* rather than *summarisation*, so neither mode finds the 81 summarisation papers in the dataset. Hybrid search cannot recover what both lists miss.
 
 **Pagination of semantic and hybrid results.** Nearest-neighbour search has no natural "number of matches": every paper has *some* similarity to every query. Both modes therefore rank a fixed candidate pool (the top 100 from each source), and `total` is the size of that pool.
 

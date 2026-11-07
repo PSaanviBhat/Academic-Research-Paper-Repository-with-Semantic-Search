@@ -96,7 +96,7 @@ python3.11 -m venv embed/.venv
 embed/.venv/bin/pip install -r embed/requirements.txt
 ```
 
-Embed every `pending` paper (about 1–2 minutes for 4,000 papers on a laptop CPU):
+Embed every `pending` paper (about 50 seconds for 4,000 papers on a MacBook Air CPU):
 
 ```bash
 embed/.venv/bin/python embed/sync.py

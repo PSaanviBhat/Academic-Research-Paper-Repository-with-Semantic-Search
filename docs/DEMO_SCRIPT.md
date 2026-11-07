@@ -28,14 +28,15 @@ Open http://localhost:3000 and log in as the admin in a second browser window.
 > "Keyword search only finds papers that share words with the query. Researchers often describe a topic in their own words."
 
 - Search page, **Keyword** mode: `teaching machines to understand human language`.
-- Point out the result count and that the top results only match words like "machines" or "human", not the topic.
+- Point out: **0 results**. Keyword search needs every word (teach, machine, understand, human, language) in the same paper, and no paper says it that way.
 
 ## 2. Semantic search (2 min)
 
 - Switch the toggle to **Semantic** (same query).
 - Point out: NLP and language-understanding papers rank at the top, even though they never use these words.
 - Explain the flow on the architecture slide: query → embedding service (384-d) → Qdrant top-100 by cosine → ids re-read from PostgreSQL.
-- Second query: `figuring out if a review is positive or negative` → sentiment analysis papers.
+- Second query: `fixing typos in what people type`. Keyword finds 0 papers; semantic search returns spelling and grammatical error correction papers.
+- Optional honest limit: `making long documents shorter automatically` misses the summarisation papers (see example 6 in `docs/semantic_vs_keyword.md`). The small model matches "length", not the task.
 
 ## 3. Hybrid search (1 min)
 
