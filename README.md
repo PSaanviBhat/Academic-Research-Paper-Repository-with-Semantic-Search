@@ -3,6 +3,7 @@
 A repository of research papers with keyword, semantic and hybrid search.
 - **PostgreSQL 16** is the source of truth for papers, authors, citations, conferences, users and bookmarks.
 - **Qdrant** stores abstract embeddings for semantic search.
+- A small **Python embedding service** (FastAPI + all-MiniLM-L6-v2, 384-d) turns text into vectors.
 - A **Next.js** app exposes the API (and, later, the UI).
 
 DBMS Experiential Learning, Level 3 mini project.
@@ -83,7 +84,33 @@ python ingest/verify_load.py
 
 **Option B: restore a shared database dump** (no API key needed). See "Database dump" in `docs/HANDOFF.md`.
 
-### 4. Start the API
+### 4. Embed the papers into Qdrant
+
+Set up the embedding environment once (the first run downloads the ~90 MB model):
+
+```bash
+python3.11 -m venv embed/.venv
+```
+
+```bash
+embed/.venv/bin/pip install -r embed/requirements.txt
+```
+
+Embed every `pending` paper (about 1–2 minutes for 4,000 papers on a laptop CPU):
+
+```bash
+embed/.venv/bin/python embed/sync.py
+```
+
+Start the embedding service and keep this terminal open (the API calls it for every semantic query and new paper):
+
+```bash
+embed/.venv/bin/uvicorn --app-dir embed app:app --port 8001
+```
+
+On Windows, use `embed\.venv\Scripts\python` and `embed\.venv\Scripts\uvicorn` instead.
+
+### 5. Start the web app
 
 ```bash
 npm --prefix web install
@@ -100,9 +127,19 @@ npm --prefix web run dev
 The second command creates the admin account from `.env`. The third starts the API on http://localhost:3000; keep that terminal open while you use it.
 
 There is no home page yet, so `http://localhost:3000/` shows a 404. Open an API route instead:
-- http://localhost:3000/api/search?q=neural%20machine%20translation
+- http://localhost:3000/api/search?q=teaching%20machines%20to%20understand%20human%20language&mode=semantic
 - http://localhost:3000/api/stats/overview
 - http://localhost:3000/api/papers/3
+
+## Keeping PostgreSQL and Qdrant in sync
+
+PostgreSQL is the source of truth. Adding, editing or deleting a paper through the API updates Qdrant right after the SQL transaction commits. If that fails (for example the embedding service is stopped), the paper is marked `failed` and the next sync retries it:
+
+```bash
+embed/.venv/bin/python embed/sync.py                 # embed every pending/failed paper
+embed/.venv/bin/python embed/sync.py --check         # compare both databases
+embed/.venv/bin/python embed/sync.py --check --fix   # repair any drift
+```
 
 ## Tests
 
@@ -112,7 +149,8 @@ There is no home page yet, so `http://localhost:3000/` shows a 404. Open an API 
 | Ingestion helpers (abstract rebuild, DOI cleaning) | `python ingest/test_common.py` | nothing |
 | Load check | `python ingest/verify_load.py` | data loaded |
 | Auth walkthrough with curl | `bash web/tests/auth_curl.sh` | API running, admin seeded |
-| Every API route + contract fields | `npm --prefix web run test:api` | API running, data loaded, admin seeded |
+| Every API route + contract fields, semantic/hybrid search, PostgreSQL–Qdrant sync | `npm --prefix web run test:api` | app and embedding service running, data loaded and embedded, admin seeded |
+| Embedding helpers | `embed/.venv/bin/python embed/test_embed.py` | embedding environment |
 
 The SQL tests run inside a transaction that is rolled back, so they never change your data. They pass on an empty database and on a fully loaded one.
 
@@ -162,6 +200,7 @@ docker compose exec db psql -U app -d papers
 |---|---|
 | `db/` | Numbered, append-only SQL migrations, plus subfolders: `tests` (SQL tests), `seed` (test seed data), `demo` (viva demo), `evidence` (EXPLAIN script) |
 | `ingest/` | Python scripts that load papers from OpenAlex |
+| `embed/` | Embedding service (`app.py`) and the PostgreSQL→Qdrant sync script (`sync.py`) |
 | `web/` | Next.js app: API routes in `app/api`, shared code in `lib`, tests in `tests` |
 | `docs/` | Proposal, API contract, ER diagram, decisions, evidence, handoff, report draft |
 | `scripts/` | Rebuild, test and psql helper scripts (bash and PowerShell) |

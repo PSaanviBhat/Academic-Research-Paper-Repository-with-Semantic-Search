@@ -161,3 +161,51 @@ This file records every place where the build differs from, or adds detail to, `
 
 **Delete routes return `200` with a small JSON body (`{ "paper_id": 42, "deleted": true }`) instead of `204 No Content`.**
 - Every response is then JSON, which keeps the front end simpler.
+
+---
+
+# Part 2: vector database
+
+## Embedding service and pipeline
+
+**One script, `embed/sync.py`, is both the bulk loader (V2) and the retry script (V3).**
+- It embeds every paper whose `embedding_status` is `'pending'` or `'failed'`. On the first run that is all 4,000 papers; afterwards it is only papers that were added, edited or failed.
+- It is idempotent: a second run finds nothing to do. Upserts use `id = paper_id`, so re-embedding a paper overwrites its point instead of duplicating it.
+- `--check` compares the two databases (papers marked `done` with no point, and orphan points with no paper); `--check --fix` repairs both.
+
+**The sync script loads the model in-process instead of calling `POST /embed`.**
+- Same model, same text, same normalisation (`embed/common.py` is shared by both), but bulk embedding 4,000 papers avoids 63 HTTP round trips.
+- The Next.js API uses `POST /embed` for queries and for single papers, as agreed.
+
+**Vectors are normalised to unit length.** Cosine similarity then equals the dot product, and the scores the API returns are in `[-1, 1]`.
+
+**A paper is marked `done` only if its text has not changed since it was embedded.**
+- The `UPDATE ... SET embedding_status = 'done'` compares `md5(title || '. ' || abstract)` with the hash of the text that was embedded.
+- Without this, an admin edit landing between "read text" and "mark done" would leave a stale vector marked `done`. With it, the paper stays `pending` and the next sync re-embeds it.
+
+**A Qdrant payload index on `year`** (created by `sync.py`) so the year filter in semantic search does not scan every point.
+
+**The embedding service runs as a local Python process, not in Docker Compose.**
+- On Apple Silicon, PyTorch inside Docker runs without the native acceleration and the image is about 2 GB.
+- The model (about 90 MB) is cached by Hugging Face after the first run. A Dockerfile can be added later if both teammates want it.
+
+## Consistency (V3)
+
+**Post-commit writes use Next.js `after()`.**
+- `POST`, `PATCH` and `DELETE /api/papers` run the Qdrant write after the SQL transaction has committed and the response has been sent. The frozen response `{ paper_id, embedding_status: "pending" }` is unchanged.
+- If the embedding service or Qdrant is down, the paper is marked `'failed'` and the request still succeeds: PostgreSQL is the source of truth. `sync.py` retries it.
+- A failed Qdrant delete is only logged. The orphan vector is harmless because results are re-read from PostgreSQL and missing ids are dropped; `sync.py --check --fix` removes it.
+
+**A `year` change in `PATCH` also re-syncs the paper.** The year is in the Qdrant payload (for the year filter), so it would otherwise go stale. The text is unchanged, so `embedding_status` is not reset to `pending`.
+
+## Search (V4, V5)
+
+**Semantic and hybrid search rank a pool of 100 candidates, then paginate it.**
+- Nearest-neighbour search has no natural "total number of matches", so `total` is the pool size after hydration (at most 100 for semantic, at most 200 for hybrid).
+- All candidates are hydrated from PostgreSQL in one query (`WHERE paper_id = ANY($1) ORDER BY array_position(...)`), so ids that no longer exist are dropped before pages are cut, and every page is full.
+
+**Hybrid uses the keyword top 100 and the semantic top 100**, fused with `score = Σ 1 / (60 + rank)`, ranks starting at 1. Ties are broken by `paper_id` for a stable order.
+
+**New error code `503 SERVICE_UNAVAILABLE`** when the embedding service or Qdrant cannot be reached. It replaces the `501 NOT_IMPLEMENTED` placeholder. Keyword search does not depend on either service.
+
+**Semantic snippets are the first ~35 words of the abstract**, the same length as keyword snippets. `ts_headline` needs query words to centre on, and a semantic query may share none.

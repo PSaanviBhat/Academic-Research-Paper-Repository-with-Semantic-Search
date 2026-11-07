@@ -39,3 +39,18 @@ Status: `done` = built and proven by the command in the last column; `todo` = no
 | Keyword search works; semantic and hybrid return 501 | PASS | `/api/search` returned 200 for keyword, 501 "implemented in Part 2" for semantic and hybrid |
 | Auth, CRUD, bookmarks, paper detail and stats routes pass their tests | PASS | `auth_curl.sh` 20/20, `test:api` 32/32, SQL tests 113/113, helper tests 10/10 |
 | README, API_CONTRACT, HANDOFF, EXPLAIN evidence and RDBMS report draft exist | PASS | all present in the clone |
+
+---
+
+# Progress: vector DB half
+
+Status: `built` = code written and type-checked, not yet run against the loaded data; `done` = proven by the command in the last column.
+
+| Task | Status | Date | Proof (run from the repo root) |
+|---|---|---|---|
+| V1 Embedding service (FastAPI, all-MiniLM-L6-v2, `POST /embed`) | built | 2026-11-07 | `embed/.venv/bin/python embed/test_embed.py`; `curl -X POST localhost:8001/embed -H 'Content-Type: application/json' -d '{"text":"hello"}'` |
+| V2 Qdrant collection + bulk embedding | built | 2026-11-07 | `embed/.venv/bin/python embed/sync.py` (all papers `done`), then `sync.py --check` |
+| V3 Consistency (post-commit upsert/delete, failed status, retry, orphan-safe hydration) | built | 2026-11-07 | `npm --prefix web run test:api` ("vector consistency" tests) |
+| V4 Semantic search `/api/search?mode=semantic` | built | 2026-11-07 | `npm --prefix web run test:api` (search tests) |
+| V5 Hybrid search (RRF) `/api/search?mode=hybrid` | built | 2026-11-07 | `npm --prefix web run test:api` (search tests) |
+| V9 Semantic-vs-keyword examples, vector report | built | 2026-11-07 | `embed/.venv/bin/python embed/compare_modes.py` → `docs/semantic_vs_keyword.md`; `docs/report_vector.md` |
