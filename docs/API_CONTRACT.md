@@ -30,7 +30,7 @@ Every error uses the same shape:
 | 403  | `FORBIDDEN`        | Logged in, but the role is not allowed |
 | 404  | `NOT_FOUND`        | The ID does not exist |
 | 409  | `CONFLICT`         | A unique rule would be broken (duplicate email, DOI, bookmark, conference name + year) |
-| 501  | `NOT_IMPLEMENTED`  | `mode=semantic` / `mode=hybrid` until the vector side is built |
+| 503  | `SERVICE_UNAVAILABLE` | `mode=semantic` / `mode=hybrid` when the embedding service or Qdrant cannot be reached |
 | 500  | `INTERNAL_ERROR`   | Unexpected server error |
 
 ### Pagination
@@ -101,10 +101,14 @@ List endpoints take `page` (1-based, default `1`) and return `{ "results": [...]
 - **hybrid**: `score` is the Reciprocal Rank Fusion score, the sum of `1 / (60 + rank)` over the keyword and semantic lists.
 - Every mode returns this exact shape. Full records always come from PostgreSQL.
 
-**501** for `mode=semantic` or `mode=hybrid` until the vector side is built:
+- **semantic** and **hybrid** rank a fixed pool of the best **100** candidates and paginate it, so `total` is at most 100 for semantic and at most 200 for hybrid (the union of the two top-100 lists). Nearest-neighbour search has no natural "number of matches".
+- In semantic results `abstract_snippet` is the first ~35 words of the abstract (there are no query words to centre on).
+- `year` works in every mode. In semantic mode it is a Qdrant payload filter, so the 100 candidates all come from that year.
+
+**503** for `mode=semantic` or `mode=hybrid` when the embedding service or Qdrant is down. Keyword search keeps working.
 
 ```json
-{ "error": { "code": "NOT_IMPLEMENTED", "message": "implemented in Part 2" } }
+{ "error": { "code": "SERVICE_UNAVAILABLE", "message": "the embedding service is not reachable; semantic search is unavailable" } }
 ```
 
 **400** if `q` is missing or empty, or if `mode`, `page` or `year` is invalid.
@@ -166,7 +170,7 @@ Creates a paper **atomically** through the database function `add_paper()`. Eith
 
 **201** returns `{ "paper_id": 4211, "embedding_status": "pending" }`.
 
-The new paper always starts with `embedding_status = "pending"`. The vector side embeds it after this call returns.
+The new paper always starts with `embedding_status = "pending"`. Right after the response is sent, the server embeds it and upserts it to Qdrant, then sets `embedding_status` to `"done"` (or `"failed"`, retried by `embed/sync.py`). This usually takes well under a second.
 
 Errors:
 - **400** for invalid input, including a `cited_paper_ids` entry or `conference_id` that does not exist.
@@ -175,12 +179,12 @@ Errors:
 ### `PATCH /api/papers/:id` (admin)
 Body: any of `title`, `abstract`, `year`, `doi`, `conference_id` (`null` clears it). Authors and citations are not edited here.
 
-If `title` or `abstract` changes, `embedding_status` is reset to `"pending"` so the vector side re-embeds the paper.
+If `title` or `abstract` changes, `embedding_status` is reset to `"pending"` and the paper is re-embedded right after the response. A `year` change also refreshes the Qdrant payload (used by the year filter).
 
 **200** returns the same body as `GET /api/papers/:id`. **400 / 404 / 409** as usual.
 
 ### `DELETE /api/papers/:id` (admin)
-Deletes the paper. Its author links, citations and bookmarks are removed by `ON DELETE CASCADE`. A database trigger writes an `audit_log` row recording which admin deleted it.
+Deletes the paper. Its author links, citations and bookmarks are removed by `ON DELETE CASCADE`. A database trigger writes an `audit_log` row recording which admin deleted it. After the delete commits, the paper's Qdrant point is removed.
 
 **200** returns `{ "paper_id": 42, "deleted": true }`. **404** if it does not exist.
 
