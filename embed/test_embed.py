@@ -33,7 +33,9 @@ check("vectors are 384-d", all(len(x) == DIM for x in v), f"dims={[len(x) for x 
 check("vectors are unit length", all(abs(math.sqrt(sum(c * c for c in x)) - 1) < 1e-4 for x in v))
 related, unrelated = cos(v[0], v[1]), cos(v[0], v[2])
 check("related phrasing is closer than an unrelated one", related > unrelated, f"{related:.3f} > {unrelated:.3f}")
-check("same text gives the same vector", embed(["natural language processing"])[0] == v[0])
+# Alone vs inside a padded batch differs only by float rounding, so compare with a tolerance.
+same = cos(embed(["natural language processing"])[0], v[0])
+check("same text gives the same vector (up to rounding)", same > 0.9999, f"cosine={same:.6f}")
 
 # The hash used to mark papers 'done' must be identical in Python and PostgreSQL.
 try:
