@@ -39,3 +39,20 @@ Status: `done` = built and proven by the command in the last column; `todo` = no
 | Keyword search works; semantic and hybrid return 501 | PASS | `/api/search` returned 200 for keyword, 501 "implemented in Part 2" for semantic and hybrid |
 | Auth, CRUD, bookmarks, paper detail and stats routes pass their tests | PASS | `auth_curl.sh` 20/20, `test:api` 32/32, SQL tests 113/113, helper tests 10/10 |
 | README, API_CONTRACT, HANDOFF, EXPLAIN evidence and RDBMS report draft exist | PASS | all present in the clone |
+
+---
+
+# Progress: vector DB half
+
+Status: `done` = proven by the command in the last column.
+
+Verified on a fresh OpenAlex download (2026-11-07): 4,000 papers, 39,100 citations, all counters correct (`verify_load.py`). OpenAlex has grown since the Part 1 load (37,988 citations), so counts differ slightly from Saanvi's database.
+
+| Task | Status | Date | Proof (run from the repo root) |
+|---|---|---|---|
+| V1 Embedding service (FastAPI, all-MiniLM-L6-v2, `POST /embed`) | done | 2026-11-07 | `embed/.venv/bin/python embed/test_embed.py` (10 passed: 384-d unit vectors, related text closer than unrelated, Python and SQL hashes agree); `curl localhost:8001/health` |
+| V2 Qdrant collection + bulk embedding | done | 2026-11-07 | `embed/.venv/bin/python embed/sync.py` (4000 done, 0 failed, 49.5 s); second run: "nothing to embed"; `sync.py --check`: 4000 points, 0 missing, 0 orphans |
+| V3 Consistency (post-commit upsert/delete, failed status, retry, orphan-safe hydration) | done | 2026-11-07 | `npm --prefix web run test:api` ("vector consistency": add → done + found by meaning, PATCH → re-embedded, DELETE → point removed; 4 passed) |
+| V4 Semantic search `/api/search?mode=semantic` | done | 2026-11-07 | `npm --prefix web run test:api` (search: 7 passed, incl. contract fields, cosine ≤ 1, pagination, year filter); 38/38 overall |
+| V5 Hybrid search (RRF) `/api/search?mode=hybrid` | done | 2026-11-07 | `npm --prefix web run test:api` (contract fields, RRF ≤ 2/61, year filter) |
+| V9 Semantic-vs-keyword examples, vector report | done | 2026-11-07 | `embed/.venv/bin/python embed/compare_modes.py` → `docs/semantic_vs_keyword.md` (6 queries: 3 where keyword finds 0 and semantic finds the topic, 1 where both work, 1 partial, 1 documented limitation); `docs/report_vector.md` |
