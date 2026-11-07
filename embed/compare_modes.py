@@ -19,14 +19,50 @@ BASE = os.environ.get("BASE_URL", "http://localhost:3000")
 OUT = ROOT / "docs" / "semantic_vs_keyword.md"
 TOP = 5
 
-# Each query is phrased differently from how papers word the topic.
+# Each query is phrased differently from how papers word the topic:
+# (query, why it is a good test, observation from the results on the 4,000-paper NLP dataset).
 QUERIES = [
-    ("teaching machines to understand human language", "The proposal's own example: no paper says this; they say 'natural language processing / understanding'."),
-    ("computers that translate between languages", "Everyday words for machine translation."),
-    ("figuring out if a review is positive or negative", "A description of sentiment analysis that never uses the term."),
-    ("finding names of people and places in text", "Named entity recognition, described in plain words."),
-    ("a program that answers questions about a paragraph", "Reading comprehension / extractive question answering."),
-    ("making long documents shorter automatically", "Automatic summarisation, without the word 'summarisation'."),
+    (
+        "teaching machines to understand human language",
+        "The proposal's own example. Papers say 'natural language understanding', not this.",
+        "Keyword search finds **nothing**: `websearch_to_tsquery` requires every word (teach, machin, understand, human, "
+        "languag) in the same paper. Semantic search returns papers on language understanding and language learning by "
+        "machines. Hybrid equals semantic here, because the keyword list is empty.",
+    ),
+    (
+        "computers that translate between languages",
+        "Everyday words for machine translation, but 'translate' shares a stem with 'translation'.",
+        "**Both modes work.** Stemming lets keyword search match 'translation', so it finds machine translation papers too. "
+        "Semantic search is not always better: when the user's words overlap the papers' words, keyword search is precise "
+        "and cheap. Hybrid ranks papers that both lists agree on first.",
+    ),
+    (
+        "fixing typos in what people type",
+        "Spelling correction, described without the words 'spelling', 'error' or 'correction'.",
+        "Keyword search finds **nothing**. Semantic search returns spelling correction and grammatical error correction "
+        "papers in its top 3, with none of the query's words in their titles.",
+    ),
+    (
+        "finding names of people and places in text",
+        "Named entity recognition, described in plain words.",
+        "Keyword search finds **nothing** (no paper contains all of 'find', 'name', 'peopl', 'place', 'text'). Semantic search "
+        "returns proper-name recognition, place-name disambiguation and the Nymble name-finder: the named entity "
+        "recognition literature.",
+    ),
+    (
+        "a program that answers questions about a paragraph",
+        "Question answering / reading comprehension.",
+        "Keyword search finds one loosely related paper. Semantic search finds question answering systems in its top 5, "
+        "although its first result ('Text Generation') is only loosely related: a **partial success**.",
+    ),
+    (
+        "making long documents shorter automatically",
+        "Automatic summarisation, without the word 'summarisation'. Included as a **limitation**.",
+        "**Neither mode works.** The dataset holds 81 summarisation papers (the keyword query `summarization` finds them), "
+        "but the small all-MiniLM-L6-v2 model matches the surface idea of *length* ('word length distribution', 'short "
+        "texts') rather than the task. Hybrid cannot fix this, because both lists miss. A larger or science-specific "
+        "embedding model (for example SPECTER) would be expected to do better, at the cost of slower embedding.",
+    ),
 ]
 
 
@@ -61,7 +97,7 @@ def main() -> int:
     ]
     summary = ["| # | Query | Keyword matches | Keyword top-1 | Semantic top-1 |", "|---|---|---:|---|---|"]
 
-    for i, (q, why) in enumerate(QUERIES, 1):
+    for i, (q, why, observation) in enumerate(QUERIES, 1):
         res = {m: search(q, m) for m in ("keyword", "semantic", "hybrid")}
         kw_total = res["keyword"]["total"]
         top1 = lambda m: cell(res[m]["results"][0]["title"]) if res[m]["results"] else "*(none)*"  # noqa: E731
@@ -79,7 +115,7 @@ def main() -> int:
                 else:
                     row.append("–")
             lines.append(f"| {r + 1} | " + " | ".join(row) + " |")
-        lines += ["", "**Observation:** _(fill in: which mode found the relevant papers, and why)_", ""]
+        lines += ["", f"**Observation:** {observation}", ""]
 
     lines[9:9] = ["## Summary", "", *summary, ""]
     OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
