@@ -42,7 +42,7 @@ Status: `done` = built and proven by the command in the last column; `todo` = no
 
 ---
 
-# Progress: vector DB half
+# Progress: vector DB and front-end half
 
 Status: `built` = code written and type-checked, not yet run against the loaded data; `done` = proven by the command in the last column.
 
@@ -53,4 +53,7 @@ Status: `built` = code written and type-checked, not yet run against the loaded 
 | V3 Consistency (post-commit upsert/delete, failed status, retry, orphan-safe hydration) | built | 2026-11-07 | `npm --prefix web run test:api` ("vector consistency" tests) |
 | V4 Semantic search `/api/search?mode=semantic` | built | 2026-11-07 | `npm --prefix web run test:api` (search tests) |
 | V5 Hybrid search (RRF) `/api/search?mode=hybrid` | built | 2026-11-07 | `npm --prefix web run test:api` (search tests) |
-| V9 Semantic-vs-keyword examples, vector report | built | 2026-11-07 | `embed/.venv/bin/python embed/compare_modes.py` → `docs/semantic_vs_keyword.md`; `docs/report_vector.md` |
+| V6 Next.js layout + search page | built | 2026-11-07 | `npm --prefix web run build`; open http://localhost:3000 |
+| V7 Login, paper detail, bookmarks, admin screens | built | 2026-11-07 | browser walkthrough in `docs/DEMO_SCRIPT.md` |
+| V8 Statistics dashboard | built | 2026-11-07 | http://localhost:3000/stats |
+| V9 Examples, report, demo script | built | 2026-11-07 | `embed/.venv/bin/python embed/compare_modes.py` → `docs/semantic_vs_keyword.md`; `docs/report_vector.md`; `docs/DEMO_SCRIPT.md` |

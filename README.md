@@ -4,7 +4,7 @@ A repository of research papers with keyword, semantic and hybrid search.
 - **PostgreSQL 16** is the source of truth for papers, authors, citations, conferences, users and bookmarks.
 - **Qdrant** stores abstract embeddings for semantic search.
 - A small **Python embedding service** (FastAPI + all-MiniLM-L6-v2, 384-d) turns text into vectors.
-- A **Next.js** app exposes the API (and, later, the UI).
+- A **Next.js** app serves the UI and the API.
 
 DBMS Experiential Learning, Level 3 mini project.
 
@@ -124,12 +124,16 @@ npm --prefix web run seed:admin
 npm --prefix web run dev
 ```
 
-The second command creates the admin account from `.env`. The third starts the API on http://localhost:3000; keep that terminal open while you use it.
+The second command creates the admin account from `.env`. The third starts the app on http://localhost:3000; keep that terminal open while you use it.
 
-There is no home page yet, so `http://localhost:3000/` shows a 404. Open an API route instead:
-- http://localhost:3000/api/search?q=teaching%20machines%20to%20understand%20human%20language&mode=semantic
-- http://localhost:3000/api/stats/overview
-- http://localhost:3000/api/papers/3
+| Page | What it does |
+|---|---|
+| `/` | Search with a keyword / semantic / hybrid toggle, year filter and pagination |
+| `/papers/:id` | Paper details: authors, abstract, references, cited-by, bookmark button |
+| `/stats` | Statistics dashboard |
+| `/login`, `/register` | Accounts (registration creates researchers) |
+| `/bookmarks` | The logged-in user's bookmarks |
+| `/admin` | Admin only: add/edit/delete papers, authors, conferences; audit log |
 
 ## Keeping PostgreSQL and Qdrant in sync
 
@@ -201,6 +205,6 @@ docker compose exec db psql -U app -d papers
 | `db/` | Numbered, append-only SQL migrations, plus subfolders: `tests` (SQL tests), `seed` (test seed data), `demo` (viva demo), `evidence` (EXPLAIN script) |
 | `ingest/` | Python scripts that load papers from OpenAlex |
 | `embed/` | Embedding service (`app.py`) and the PostgreSQL→Qdrant sync script (`sync.py`) |
-| `web/` | Next.js app: API routes in `app/api`, shared code in `lib`, tests in `tests` |
+| `web/` | Next.js app: pages in `app`, API routes in `app/api`, UI components in `components`, shared code in `lib`, tests in `tests` |
 | `docs/` | Proposal, API contract, ER diagram, decisions, evidence, handoff, report draft |
 | `scripts/` | Rebuild, test and psql helper scripts (bash and PowerShell) |
