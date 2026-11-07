@@ -1,6 +1,6 @@
 # Vector Database, Semantic Search and Integration (report draft)
 
-*Draft section for the project report, covering the Qdrant half and the PostgreSQL–Qdrant integration. The relational half is in `docs/report_rdbms.md`. Worked search examples are in `docs/semantic_vs_keyword.md`.*
+*Draft section for the project report, covering the Qdrant half, the PostgreSQL–Qdrant integration and the front end. The relational half is in `docs/report_rdbms.md`. Worked search examples are in `docs/semantic_vs_keyword.md`.*
 
 ---
 
@@ -125,7 +125,20 @@ with ranks starting at 1. A paper ranked 1st by both lists scores 2/61 ≈ 0.032
 
 **Pagination of semantic and hybrid results.** Nearest-neighbour search has no natural "number of matches": every paper has *some* similarity to every query. Both modes therefore rank a fixed candidate pool (the top 100 from each source), and `total` is the size of that pool.
 
-## 7. Testing summary
+## 7. Front end
+
+The Next.js app (`web/app`) is a client of the same documented API, with no private shortcuts.
+
+| Page | Features |
+|---|---|
+| `/` Search | Query box, keyword / semantic / hybrid toggle, year filter, pagination, result cards with authors, venue, year, citation count and score. State is kept in the URL. |
+| `/papers/:id` | Authors in order, abstract, references and cited-by lists (links), embedding status, bookmark button |
+| `/login`, `/register` | Session-cookie login; registration creates researchers |
+| `/bookmarks` | The user's saved papers |
+| `/stats` | Totals, papers-per-year column chart (with table view), most cited papers, top authors, top venues |
+| `/admin` | Admin only: add a paper (atomic `add_paper()`), edit/delete papers, manage authors and conferences, audit log |
+
+## 8. Testing summary
 
 | What | Command | Checks |
 |---|---|---|

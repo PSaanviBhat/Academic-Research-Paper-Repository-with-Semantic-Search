@@ -164,7 +164,7 @@ This file records every place where the build differs from, or adds detail to, `
 
 ---
 
-# Part 2: vector database
+# Part 2: vector database and front end
 
 ## Embedding service and pipeline
 
@@ -209,3 +209,11 @@ This file records every place where the build differs from, or adds detail to, `
 **New error code `503 SERVICE_UNAVAILABLE`** when the embedding service or Qdrant cannot be reached. It replaces the `501 NOT_IMPLEMENTED` placeholder. Keyword search does not depend on either service.
 
 **Semantic snippets are the first ~35 words of the abstract**, the same length as keyword snippets. `ts_headline` needs query words to centre on, and a semantic query may share none.
+
+## Front end (V6, V7, V8)
+
+**All pages are client components calling the documented API routes.** The UI uses only the API, exactly like any other client, so the API tests cover the same code paths the UI uses.
+
+**No UI library or chart library.** Plain CSS (`app/globals.css`, light and dark) and hand-drawn SVG/HTML bars. Nothing extra to install, and every chart has a hover value and a table view.
+
+**The search page defaults to hybrid mode** and keeps `q`, `mode`, `year` and `page` in the URL, so a search can be reloaded, shared or bookmarked in the browser.
