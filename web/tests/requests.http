@@ -30,8 +30,12 @@ GET {{base}}/api/search?q=neural machine translation&mode=keyword&page=1
 GET {{base}}/api/search?q="question answering" -visual&year=2019
 
 ###
-# 501 until the vector side is built
-GET {{base}}/api/search?q=teaching machines to understand language&mode=semantic
+# semantic: by meaning (Qdrant)
+GET {{base}}/api/search?q=teaching machines to understand human language&mode=semantic
+
+###
+# hybrid: keyword + semantic fused with Reciprocal Rank Fusion
+GET {{base}}/api/search?q=teaching machines to understand human language&mode=hybrid
 
 ### ---------- papers ----------
 GET {{base}}/api/papers?page=1&year=2018

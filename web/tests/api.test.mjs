@@ -142,11 +142,33 @@ describe("API", () => {
       expectStatus(r, 200);
       assert.deepEqual(r.body, { results: [], total: 0 });
     });
-    it("semantic and hybrid -> 501 'implemented in Part 2'", async () => {
+    it("semantic and hybrid return the same contract shape, best score first", async () => {
       for (const mode of ["semantic", "hybrid"]) {
-        const r = await anon("GET", `/api/search?q=bert&mode=${mode}`);
-        expectStatus(r, 501, "NOT_IMPLEMENTED");
-        assert.equal(r.body.error.message, "implemented in Part 2");
+        const r = await anon("GET", `/api/search?q=teaching%20machines%20to%20understand%20human%20language&mode=${mode}`);
+        expectStatus(r, 200);
+        hasKeys(r.body, ["results", "total"], `${mode} body`);
+        assert.equal(r.body.results.length, 10, `${mode}: a full first page`);
+        assert.ok(r.body.total >= 10 && r.body.total <= 200, `${mode}: total is the candidate pool`);
+        r.body.results.forEach((x) => hasKeys(x, K.searchResult, `${mode} result`));
+        const scores = r.body.results.map((x) => x.score);
+        assert.deepEqual(scores, [...scores].sort((a, b) => b - a), `${mode}: sorted by score`);
+      }
+    });
+    it("semantic score is cosine (<= 1); hybrid score is RRF (<= 2/61)", async () => {
+      const sem = await anon("GET", "/api/search?q=machine%20translation&mode=semantic");
+      assert.ok(sem.body.results.every((x) => x.score > 0 && x.score <= 1.0001));
+      const hyb = await anon("GET", "/api/search?q=machine%20translation&mode=hybrid");
+      assert.ok(hyb.body.results.every((x) => x.score > 0 && x.score <= 2 / 61 + 1e-9));
+    });
+    it("semantic: page 2 differs from page 1; year filter applies", async () => {
+      const p1 = await anon("GET", "/api/search?q=sentiment%20analysis&mode=semantic&page=1");
+      const p2 = await anon("GET", "/api/search?q=sentiment%20analysis&mode=semantic&page=2");
+      const ids1 = p1.body.results.map((x) => x.paper_id);
+      assert.ok(p2.body.results.every((x) => !ids1.includes(x.paper_id)));
+      for (const mode of ["semantic", "hybrid"]) {
+        const y = await anon("GET", `/api/search?q=language%20models&mode=${mode}&year=2019`);
+        expectStatus(y, 200);
+        assert.ok(y.body.results.length > 0 && y.body.results.every((x) => x.year === 2019), `${mode} year filter`);
       }
     });
     it("bad input -> 400", async () => {
@@ -392,6 +414,54 @@ describe("API", () => {
     it("logout ends the session", async () => {
       expectStatus(await researcher("POST", "/api/auth/logout"), 200);
       expectStatus(await researcher("GET", "/api/auth/me"), 401);
+    });
+  });
+
+  // ------------------------------------------------- PostgreSQL <-> Qdrant consistency
+  describe("vector consistency", () => {
+    const QDRANT = process.env.QDRANT_URL ?? "http://localhost:6333";
+    const title = "API test vector: photosynthesis in deep sea coral reefs";
+    const qdrantHas = async (id) => {
+      const r = await fetch(`${QDRANT}/collections/papers/points/${id}`);
+      return r.status === 200;
+    };
+    const status = async (id) =>
+      (await db.query("SELECT embedding_status FROM papers WHERE paper_id = $1", [id])).rows[0]?.embedding_status;
+    /** The embedding runs after the response is sent, so wait for it (up to 15 s). */
+    const waitFor = async (fn, what) => {
+      for (let i = 0; i < 60; i++) {
+        if (await fn()) return;
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      assert.fail(`timed out waiting for ${what}`);
+    };
+
+    it("POST: committed as 'pending', then embedded, upserted and marked 'done'", async () => {
+      const r = await admin("POST", "/api/papers", {
+        title,
+        abstract: "Coral reef organisms in the deep ocean convert faint light into chemical energy.",
+        year: 2024,
+        authors: [{ name: "API test marine author" }],
+      });
+      expectStatus(r, 201);
+      assert.equal(r.body.embedding_status, "pending");
+      s.vec = r.body.paper_id;
+      await waitFor(async () => (await status(s.vec)) === "done", "embedding_status = done");
+      assert.ok(await qdrantHas(s.vec), "Qdrant point with id = paper_id exists");
+    });
+    it("semantic search finds it by meaning, without its exact words", async () => {
+      const r = await anon("GET", "/api/search?q=how%20underwater%20reef%20creatures%20make%20energy%20from%20light&mode=semantic");
+      expectStatus(r, 200);
+      assert.equal(r.body.results[0].paper_id, s.vec);
+    });
+    it("PATCH of the title re-embeds the paper (pending -> done)", async () => {
+      const r = await admin("PATCH", `/api/papers/${s.vec}`, { title: `${title} (revised)` });
+      expectStatus(r, 200);
+      await waitFor(async () => (await status(s.vec)) === "done", "re-embedding after PATCH");
+    });
+    it("DELETE removes the row first, then the Qdrant point", async () => {
+      expectStatus(await admin("DELETE", `/api/papers/${s.vec}`), 200);
+      await waitFor(async () => !(await qdrantHas(s.vec)), "Qdrant point deleted");
     });
   });
 });
