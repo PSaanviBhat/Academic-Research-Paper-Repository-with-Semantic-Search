@@ -1,7 +1,9 @@
+import { after } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { withTransaction } from "@/lib/db";
 import { badRequest, handle, json, notFound, readJson } from "@/lib/http";
 import { getPaperDetail } from "@/lib/papers";
+import { deletePaperVector, syncPaperVector } from "@/lib/vector";
 import { YEAR_MAX, YEAR_MIN, idParam, normaliseDoi, optionalInt, optionalString, requiredString } from "@/lib/validate";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -32,10 +34,10 @@ export const PATCH = handle(async (req: Request, { params }: Ctx) => {
     throw badRequest("send at least one of title, abstract, year, doi, conference_id");
   }
 
-  const found = await withTransaction(async (client) => {
+  const result = await withTransaction(async (client) => {
     // FOR UPDATE locks the row, so two admins editing at once cannot overwrite each other half-way.
-    const { rows } = await client.query("SELECT title, abstract FROM papers WHERE paper_id = $1 FOR UPDATE", [paperId]);
-    if (!rows.length) return false;
+    const { rows } = await client.query("SELECT title, abstract, year FROM papers WHERE paper_id = $1 FOR UPDATE", [paperId]);
+    if (!rows.length) return null;
 
     // New text means the stored vector is out of date: mark the paper
     // 'pending' so the vector side embeds it again.
@@ -47,9 +49,14 @@ export const PATCH = handle(async (req: Request, { params }: Ctx) => {
     const columns = Object.keys(changes);
     const setList = columns.map((c, i) => `${c} = $${i + 2}`).join(", ");
     await client.query(`UPDATE papers SET ${setList} WHERE paper_id = $1`, [paperId, ...columns.map((c) => changes[c])]);
-    return true;
+    // The Qdrant payload carries the year (for the year filter), so a year change needs a re-sync too.
+    const yearChanged = "year" in changes && changes.year !== rows[0].year;
+    return { needsResync: textChanged || yearChanged };
   });
-  if (!found) throw notFound("paper");
+  if (!result) throw notFound("paper");
+  // Committed: refresh the vector after the response is sent. If that fails the
+  // paper is marked 'failed' and embed/sync.py retries it.
+  if (result.needsResync) after(() => syncPaperVector(paperId));
   return json(await getPaperDetail(paperId));
 });
 
@@ -67,5 +74,8 @@ export const DELETE = handle(async (_req: Request, { params }: Ctx) => {
     return rowCount === 1;
   });
   if (!deleted) throw notFound("paper");
+  // PostgreSQL first (committed above), then Qdrant. If this fails, the orphan
+  // vector is harmless: search results are re-read from PostgreSQL.
+  after(() => deletePaperVector(paperId));
   return json({ paper_id: paperId, deleted: true });
 });

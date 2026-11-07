@@ -1,8 +1,10 @@
+import { after } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { badRequest, handle, json, readJson } from "@/lib/http";
 import { LIST_PAGE_SIZE, offsetFor, pageResult } from "@/lib/paging";
 import { SUMMARY_COLUMNS, toSummary } from "@/lib/papers";
+import { syncPaperVector } from "@/lib/vector";
 import {
   YEAR_MAX,
   YEAR_MIN,
@@ -71,5 +73,8 @@ export const POST = handle(async (req: Request) => {
     "SELECT add_paper($1, $2, $3, $4, $5, $6::jsonb, $7::int[]) AS paper_id",
     [title, abstract, year, doi, conferenceId, JSON.stringify(authors), cited],
   );
+  // The SQL transaction has committed. Embed and upsert to Qdrant after the
+  // response is sent; the outcome lands in papers.embedding_status.
+  after(() => syncPaperVector(row.paper_id));
   return json({ paper_id: row.paper_id, embedding_status: "pending" }, 201);
 });
